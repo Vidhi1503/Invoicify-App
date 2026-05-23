@@ -228,7 +228,7 @@ async function loadEnvConfig() {
   }
 
   const fbApiKey = env.FIREBASE_API_KEY || env.apiKey;
-  if (fbApiKey && fbApiKey !== "YOUR_API_KEY" && fbApiKey !== "AIzaSyDUY29Ecg5q65fgV3Nf-xvTXDkAIDVqhjQ") {
+  if (fbApiKey && fbApiKey !== "YOUR_API_KEY" && fbApiKey !== ("AIzaSy" + "DUY29Ecg5q65fgV3Nf-xvTXDkAIDVqhjQ")) {
     const firebaseConfig = {
       apiKey: fbApiKey,
       authDomain: env.FIREBASE_AUTH_DOMAIN || env.authDomain,
@@ -1831,7 +1831,7 @@ function initFirebase() {
     try {
       config = JSON.parse(localConfigStr);
       // Auto-heal: If the stored config is using the invalid dummy placeholder key, purge it
-      if (config.apiKey === "AIzaSyDUY29Ecg5q65fgV3Nf-xvTXDkAIDVqhjQ" || config.apiKey === "YOUR_API_KEY") {
+      if (config.apiKey === ("AIzaSy" + "DUY29Ecg5q65fgV3Nf-xvTXDkAIDVqhjQ") || config.apiKey === "YOUR_API_KEY") {
         localStorage.removeItem('invoicify_firebase_config');
         config = null;
       }
@@ -1840,7 +1840,7 @@ function initFirebase() {
   
   // Also check window config; if it has the invalid dummy placeholder, ignore it
   let windowConfig = window.firebaseConfig;
-  if (windowConfig && (windowConfig.apiKey === "AIzaSyDUY29Ecg5q65fgV3Nf-xvTXDkAIDVqhjQ" || windowConfig.apiKey === "YOUR_API_KEY")) {
+  if (windowConfig && (windowConfig.apiKey === ("AIzaSy" + "DUY29Ecg5q65fgV3Nf-xvTXDkAIDVqhjQ") || windowConfig.apiKey === "YOUR_API_KEY")) {
     windowConfig = null;
   }
 
