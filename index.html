@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoicify — Premium Digital Invoice Generator & Dashboard</title>
+
+  <!-- Modern Fonts and Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Material+Icons+Round&display=swap"
+    rel="stylesheet">
+
+  <!-- Base Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="dark-workspace">
+
+  <!-- Sandbox Demo Alert Banner -->
+  <div id="sandbox-banner" class="sandbox-banner hidden">
+    <div class="sandbox-banner-content">
+      <span class="material-icons-round">offline_bolt</span>
+      <span><strong>Demo Sandbox Mode:</strong> Connected locally. <a href="#" id="link-setup-firebase">Connect Firebase</a> to sync invoices in the cloud.</span>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notifications -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Main App Shell -->
+  <div class="app-shell">
+
+    <!-- Action Header -->
+    <header class="app-header">
+      <div class="header-logo">
+        <div class="logo-icon">
+          <span class="material-icons-round">receipt_long</span>
+        </div>
+        <div class="logo-text">
+          <h1>Invoicify</h1>
+          <span class="tagline">Premium Invoice Studio</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-new" class="btn btn-secondary" title="Reset and Create New Invoice">
+          <span class="material-icons-round">add</span>
+          <span>New Invoice</span>
+        </button>
+        <button id="btn-save" class="btn btn-primary" title="Save Active Invoice to Browser">
+          <span class="material-icons-round">save</span>
+          <span>Save Invoice</span>
+        </button>
+        <button id="btn-print" class="btn btn-accent" title="Download or Print PDF">
+          <span class="material-icons-round">picture_as_pdf</span>
+          <span>Print / PDF</span>
+        </button>
+        <button id="btn-history-toggle" class="btn btn-icon" title="View Saved Invoices & Analytics">
+          <span class="material-icons-round">dashboard</span>
+          <span class="btn-badge" id="history-badge">0</span>
+        </button>
+        <div id="user-profile-badge" class="user-profile-badge hidden" title="Connected Account">
+          <span class="material-icons-round">account_circle</span>
+          <span id="user-email-display">—</span>
+        </div>
+        <button id="btn-logout" class="btn btn-secondary hidden" title="Sign Out of Invoicify">
+          <span class="material-icons-round">logout</span>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="workspace-container">
+
+      <!-- Editor Column (Left) -->
+      <section class="editor-column">
+
+        <!-- Accordion 1: Sender Profile (My Business) -->
+        <div class="card accordion active" data-section="sender">
+          <div class="accordion-header">
+            <span class="material-icons-round">storefront</span>
+            <h3>Business Details (Sender)</h3>
+            <span class="material-icons-round arrow">expand_more</span>
+          </div>
+
+          <div class="accordion-content">
+            <!-- Logo Upload Zone -->
+            <div class="form-group logo-uploader">
+              <label>Business Logo</label>
+              <div id="logo-dropzone" class="logo-dropzone">
+                <input type="file" id="logo-file-input" accept="image/*" class="file-hidden">
+                <div class="dropzone-placeholder">
+                  <span class="material-icons-round">cloud_upload</span>
+                  <p>Drag logo here or <span>browse</span></p>
+                  <span class="size-limit">Recommended: PNG/JPG, Square, Max 2MB</span>
+                </div>
+                <div class="logo-preview-wrapper hidden" id="logo-preview-wrapper">
+                  <img id="logo-img-preview" src="" alt="Business Logo Preview">
+                  <button type="button" id="btn-remove-logo" class="btn-remove-logo" title="Remove logo">
+                    <span class="material-icons-round">close</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group span-2">
+                <label for="sender-name">Business / Sender Name *</label>
+                <input type="text" id="sender-name" placeholder="e.g., Acme Corporation" required>
+              </div>
+              <div class="form-group">
+                <label for="sender-email">Email Address *</label>
+                <input type="email" id="sender-email" placeholder="billing@acme.com" required>
+              </div>
+              <div class="form-group">
+                <label for="sender-phone">Phone Number</label>
+                <input type="tel" id="sender-phone" placeholder="+1 (555) 019-2834">
+              </div>
+              <div class="form-group span-2">
+                <label for="sender-address">Address</label>
+                <textarea id="sender-address" rows="2"
+                  placeholder="123 Financial Blvd, Suite 100, New York, NY 10001"></textarea>
+              </div>
+              <div class="form-group span-2">
+                <label for="sender-bank">Payment Instructions / Bank Details (Optional)</label>
+                <textarea id="sender-bank" rows="2"
+                  placeholder="Bank: Apex Trust | A/C: 987654321 | Routing: 123456789"></textarea>
+              </div>
+            </div>
+
+            <div class="form-footer-action">
+              <label class="custom-checkbox">
+                <input type="checkbox" id="chk-save-profile" checked>
+                <span class="checkmark"></span>
+                <span>Save this info as default for future invoices</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion 2: Client Details (Receiver) -->
+        <div class="card accordion active" data-section="receiver">
+          <div class="accordion-header">
+            <span class="material-icons-round">business_center</span>
+            <h3>Client Details (Bill To)</h3>
+            <span class="material-icons-round arrow">expand_more</span>
+          </div>
+
+          <div class="accordion-content">
+            <div class="form-grid">
+              <div class="form-group span-2">
+                <label for="client-name">Client Company / Name *</label>
+                <input type="text" id="client-name" placeholder="e.g., Globex Industries" required>
+              </div>
+              <div class="form-group">
+                <label for="client-email">Client Email *</label>
+                <input type="email" id="client-email" placeholder="accounts@globex.com" required>
+              </div>
+              <div class="form-group">
+                <label for="client-phone">Client Phone</label>
+                <input type="tel" id="client-phone" placeholder="+1 (555) 043-9821">
+              </div>
+              <div class="form-group span-2">
+                <label for="client-address">Client Address</label>
+                <textarea id="client-address" rows="2"
+                  placeholder="456 Corporate Way, Building 4B, San Francisco, CA 94105"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion 3: Invoice Metadata -->
+        <div class="card accordion active" data-section="meta">
+          <div class="accordion-header">
+            <span class="material-icons-round">calendar_today</span>
+            <h3>Invoice Settings</h3>
+            <span class="material-icons-round arrow">expand_more</span>
+          </div>
+
+          <div class="accordion-content">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="invoice-number">Invoice Number *</label>
+                <div class="input-with-action">
+                  <input type="text" id="invoice-number" placeholder="INV-2026-001" required>
+                  <button type="button" id="btn-generate-number" class="btn-small-icon"
+                    title="Auto-generate next number">
+                    <span class="material-icons-round">autorenew</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="invoice-currency">Currency</label>
+                <select id="invoice-currency">
+                  <option value="USD" data-symbol="$">USD ($)</option>
+                  <option value="EUR" data-symbol="€">EUR (€)</option>
+                  <option value="GBP" data-symbol="£">GBP (£)</option>
+                  <option value="INR" data-symbol="₹">INR (₹)</option>
+                  <option value="CAD" data-symbol="C$">CAD (C$)</option>
+                  <option value="AUD" data-symbol="A$">AUD (A$)</option>
+                  <option value="JPY" data-symbol="¥">JPY (¥)</option>
+                  <option value="SGD" data-symbol="S$">SGD (S$)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="invoice-date">Issue Date *</label>
+                <input type="date" id="invoice-date" required>
+              </div>
+
+              <div class="form-group">
+                <label for="invoice-due">Due Date *</label>
+                <input type="date" id="invoice-due" required>
+              </div>
+
+              <div class="form-group">
+                <label for="invoice-status">Invoice Status</label>
+                <select id="invoice-status">
+                  <option value="Draft">Draft</option>
+                  <option value="Sent">Sent</option>
+                  <option value="Paid">Paid</option>
+                  <option value="Overdue">Overdue</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion 4: Line Items -->
+        <div class="card accordion active" data-section="items">
+          <div class="accordion-header">
+            <span class="material-icons-round">list_alt</span>
+            <h3>Services & Items</h3>
+            <span class="material-icons-round arrow">expand_more</span>
+          </div>
+
+          <div class="accordion-content">
+            <!-- Dynamic Table for items -->
+            <div class="items-table-wrapper">
+              <table class="items-form-table">
+                <thead>
+                  <tr>
+                    <th>Description *</th>
+                    <th class="col-qty">Qty *</th>
+                    <th class="col-price">Rate *</th>
+                    <th class="col-total">Total</th>
+                    <th class="col-actions"></th>
+                  </tr>
+                </thead>
+                <tbody id="items-list">
+                  <!-- JS will dynamically inject rows here -->
+                </tbody>
+              </table>
+            </div>
+
+            <button type="button" id="btn-add-item" class="btn btn-secondary btn-full btn-add-row">
+              <span class="material-icons-round">playlist_add</span>
+              <span>Add New Line Item</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Accordion 5: Discounts, Taxes & Terms -->
+        <div class="card accordion active" data-section="totals">
+          <div class="accordion-header">
+            <span class="material-icons-round">calculate</span>
+            <h3>Taxes, Discounts & Additional Notes</h3>
+            <span class="material-icons-round arrow">expand_more</span>
+          </div>
+
+          <div class="accordion-content">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="invoice-tax">Tax Rate (%)</label>
+                <div class="input-unit">
+                  <input type="number" id="invoice-tax" placeholder="0" min="0" max="100" step="0.1" value="0">
+                  <span class="unit">%</span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="invoice-discount">Discount (%)</label>
+                <div class="input-unit">
+                  <input type="number" id="invoice-discount" placeholder="0" min="0" max="100" step="0.1" value="0">
+                  <span class="unit">%</span>
+                </div>
+              </div>
+
+              <div class="form-group span-2">
+                <label for="invoice-notes">Terms & Conditions / Footer Notes (Optional)</label>
+                <textarea id="invoice-notes" rows="2"
+                  placeholder="e.g., Payment is due within 30 days of issue. Overdue payments will accrue interest at 1.5% per month. Thank you."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Preview Column (Right) -->
+      <section class="preview-column">
+        <div class="sticky-preview-wrapper">
+          <div class="preview-header-bar">
+            <div class="preview-title">
+              <span class="pulse-indicator"></span>
+              <span>Live Interactive A4 Preview</span>
+            </div>
+            <div class="preview-zoom">
+              <span class="material-icons-round">zoom_in</span>
+              <span>Scale: 100% (Fits Paper)</span>
+            </div>
+          </div>
+
+          <!-- Realistic A4 Paper Preview Container -->
+          <div class="a4-sheet-container" id="a4-print-sheet">
+            <div class="a4-inner-sheet">
+
+              <!-- Top Header Block: Brand, Logo & Invoice Meta -->
+              <div class="invoice-sheet-header">
+                <div class="sheet-brand-group">
+                  <!-- Dynamic logo fits here -->
+                  <div class="sheet-logo-container" id="sheet-logo-container">
+                    <div class="sheet-logo-placeholder">
+                      <span class="material-icons-round">business</span>
+                    </div>
+                  </div>
+                  <div class="sheet-sender-details">
+                    <h2 id="preview-sender-name" class="sheet-sender-title">Sender Business Name</h2>
+                    <p id="preview-sender-address" class="sheet-sender-text">123 Business Address City, Zip</p>
+                    <p id="preview-sender-contact" class="sheet-sender-text">email@business.com | +1 555-0100</p>
+                  </div>
+                </div>
+
+                <div class="sheet-meta-group">
+                  <h1 class="sheet-invoice-title">INVOICE</h1>
+
+                  <div class="sheet-meta-grid">
+                    <div class="meta-label">Invoice No:</div>
+                    <div class="meta-value" id="preview-invoice-num">INV-2026-001</div>
+
+                    <div class="meta-label">Date Issued:</div>
+                    <div class="meta-value" id="preview-invoice-date">May 21, 2026</div>
+
+                    <div class="meta-label">Due Date:</div>
+                    <div class="meta-value text-red" id="preview-invoice-due">June 20, 2026</div>
+
+                    <div class="meta-label">Status:</div>
+                    <div class="meta-value" id="preview-invoice-status"><span class="badge draft">Draft</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sheet-divider"></div>
+
+              <!-- Bill To & Payment Info -->
+              <div class="invoice-sheet-addresses">
+                <div class="address-block">
+                  <span class="address-heading">BILLED TO</span>
+                  <h3 id="preview-client-name" class="client-name-title">Client Company / Name</h3>
+                  <p id="preview-client-address" class="client-text">456 Corporate Address City, Country</p>
+                  <p id="preview-client-contact" class="client-text">accounts@client.com | +1 555-0200</p>
+                </div>
+
+                <div class="address-block text-right">
+                  <span class="address-heading">PAYMENT DETAILS</span>
+                  <div id="preview-payment-instructions" class="payment-instructions-text">
+                    Bank transfer details and terms will appear here...
+                  </div>
+                </div>
+              </div>
+
+              <!-- Services & Items Table -->
+              <div class="invoice-sheet-items">
+                <table class="preview-items-table">
+                  <thead>
+                    <tr>
+                      <th class="text-left">Description</th>
+                      <th class="text-center col-w-10">Qty</th>
+                      <th class="text-right col-w-15">Unit Rate</th>
+                      <th class="text-right col-w-20">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody id="preview-items-rows">
+                    <!-- JS injects rows -->
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Sheet Totaling Summary & Terms -->
+              <div class="invoice-sheet-footer">
+                <div class="footer-terms-block">
+                  <span class="terms-heading">TERMS & NOTES</span>
+                  <p id="preview-invoice-notes" class="terms-content">
+                    Standard 30-day payment term applies unless specified otherwise.
+                  </p>
+                </div>
+
+                <div class="footer-totals-block">
+                  <div class="totals-row">
+                    <span class="totals-label">Subtotal</span>
+                    <span class="totals-value" id="preview-subtotal">$0.00</span>
+                  </div>
+                  <div class="totals-row" id="preview-discount-row">
+                    <span class="totals-label">Discount (<span id="preview-discount-rate">0</span>%)</span>
+                    <span class="totals-value text-green" id="preview-discount-val">-$0.00</span>
+                  </div>
+                  <div class="totals-row" id="preview-tax-row">
+                    <span class="totals-label">Tax (<span id="preview-tax-rate">0</span>%)</span>
+                    <span class="totals-value" id="preview-tax-val">$0.00</span>
+                  </div>
+
+                  <div class="totals-divider"></div>
+
+                  <div class="totals-row grand-total-row">
+                    <span class="totals-label font-bold">Total Due</span>
+                    <span class="totals-value font-bold text-blue" id="preview-grand-total">$0.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom Brand Watermark -->
+              <div class="sheet-watermark">
+                <div class="watermark-line"></div>
+                <div class="watermark-text">Thank you for your business! Generated via Invoicify.</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Sidebar Dashboard Drawer (Right Slide-out) -->
+    <aside class="dashboard-drawer" id="dashboard-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title">
+          <span class="material-icons-round">pie_chart</span>
+          <h2>Invoices Hub</h2>
+        </div>
+        <button id="btn-close-drawer" class="btn-close" title="Close Panel">
+          <span class="material-icons-round">chevron_right</span>
+        </button>
+      </div>
+
+      <div class="drawer-content">
+
+        <!-- Quick Analytics Section -->
+        <div class="drawer-section">
+          <h3>Quick Analytics</h3>
+          <div class="analytics-grid">
+            <div class="stat-card">
+              <span class="stat-label">Total Invoiced</span>
+              <span class="stat-value" id="stat-total">$0.00</span>
+            </div>
+            <div class="stat-card accent">
+              <span class="stat-label">Paid / Collected</span>
+              <span class="stat-value text-green" id="stat-paid">$0.00</span>
+            </div>
+            <div class="stat-card warning">
+              <span class="stat-label">Draft / Pending</span>
+              <span class="stat-value text-yellow" id="stat-draft">$0.00</span>
+            </div>
+            <div class="stat-card danger">
+              <span class="stat-label">Invoices Count</span>
+              <span class="stat-value" id="stat-count">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom Visual SVG Chart -->
+        <div class="drawer-section">
+          <h3>Weekly Earnings Trend</h3>
+          <div class="chart-container">
+            <svg id="weekly-chart" class="svg-chart" viewBox="0 0 300 120">
+              <!-- Grid Lines -->
+              <line x1="30" y1="20" x2="280" y2="20" stroke="rgba(255,255,255,0.05)" />
+              <line x1="30" y1="50" x2="280" y2="50" stroke="rgba(255,255,255,0.05)" />
+              <line x1="30" y1="80" x2="280" y2="80" stroke="rgba(255,255,255,0.05)" />
+              <line x1="30" y1="100" x2="280" y2="100" stroke="rgba(255,255,255,0.15)" />
+
+              <!-- Y-Axis labels -->
+              <text x="5" y="24" class="chart-text">High</text>
+              <text x="5" y="64" class="chart-text">Mid</text>
+              <text x="5" y="104" class="chart-text">0.0</text>
+
+              <!-- Bars or Lines generated by JS -->
+              <g id="chart-bars-group"></g>
+            </svg>
+          </div>
+        </div>
+
+        <!-- History Invoices List -->
+        <div class="drawer-section history-list-section">
+          <div class="section-title-row">
+            <h3>Saved Invoices</h3>
+            <button id="btn-clear-history" class="btn-text" title="Delete all invoices from browser">Clear All</button>
+          </div>
+
+          <div class="history-list" id="history-list">
+            <!-- List entries will go here dynamically -->
+            <div class="history-empty">
+              <span class="material-icons-round">folder_open</span>
+              <p>No invoices saved in your browser history yet.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Immersive Glassmorphic Auth System -->
+  <div id="auth-screen" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo">
+          <span class="material-icons-round">receipt_long</span>
+        </div>
+        <h2>Welcome to Invoicify</h2>
+        <p>Premium Invoice Studio & Dashboards</p>
+      </div>
+
+      <!-- Auth Switch Tabs -->
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" id="tab-signin">Sign In</button>
+        <button type="button" class="auth-tab" id="tab-signup">Sign Up</button>
+      </div>
+
+      <!-- Auth Error Banner -->
+      <div id="auth-error-banner" class="auth-error-banner hidden">
+        <span class="material-icons-round">error_outline</span>
+        <span id="auth-error-msg">Incorrect credentials. Please try again.</span>
+      </div>
+
+      <!-- Auth Form -->
+      <form id="auth-form" class="auth-form">
+        <div class="form-group">
+          <label for="auth-email">Email Address</label>
+          <div class="input-with-icon">
+            <span class="material-icons-round input-icon">email</span>
+            <input type="email" id="auth-email" placeholder="you@example.com" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="auth-password">Password</label>
+          <div class="input-with-icon">
+            <span class="material-icons-round input-icon">lock</span>
+            <input type="password" id="auth-password" placeholder="••••••••" required>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-auth-submit" class="btn btn-accent btn-full btn-auth">
+          <span>Sign In</span>
+          <span class="material-icons-round">login</span>
+        </button>
+      </form>
+
+      <!-- Sandbox Demo Trigger -->
+      <div class="sandbox-trigger">
+        <p>Or try out in <a href="#" id="link-sandbox">Demo Sandbox Mode</a></p>
+      </div>
+
+      <!-- Expandable Developer Configuration Card -->
+      <div class="developer-config-panel">
+        <button type="button" class="btn-config-toggle" id="btn-config-toggle">
+          <span class="material-icons-round">settings_applications</span>
+          <span>Configure Cloud Database / Storage</span>
+          <span class="material-icons-round config-arrow">expand_more</span>
+        </button>
+        
+        <div class="config-content hidden" id="config-content">
+          <!-- Backend Switcher tabs -->
+          <div class="auth-tabs" style="margin-bottom: 1rem; padding: 2px; display: flex; gap: 4px;">
+            <button type="button" class="auth-tab active" id="btn-backend-firebase" style="font-size: 0.7rem; padding: 0.4rem 0; flex: 1;">Firebase Cloud</button>
+            <button type="button" class="auth-tab" id="btn-backend-sheets" style="font-size: 0.7rem; padding: 0.4rem 0; flex: 1;">Google Sheets</button>
+            <button type="button" class="auth-tab" id="btn-backend-mock" style="font-size: 0.7rem; padding: 0.4rem 0; flex: 1;">Local Mock DB</button>
+          </div>
+
+          <!-- Firebase Config Section -->
+          <div id="config-firebase-group">
+            <p class="config-help-text">
+              Enter your Firebase Web App credentials to connect secure real-time Firestore database.
+            </p>
+            <div class="form-grid">
+              <div class="form-group span-2">
+                <label for="cfg-apikey">API Key *</label>
+                <input type="text" id="cfg-apikey" placeholder="AIzaSy...">
+              </div>
+              <div class="form-group span-2">
+                <label for="cfg-authdomain">Auth Domain *</label>
+                <input type="text" id="cfg-authdomain" placeholder="project-id.firebaseapp.com">
+              </div>
+              <div class="form-group">
+                <label for="cfg-projectid">Project ID *</label>
+                <input type="text" id="cfg-projectid" placeholder="project-id">
+              </div>
+              <div class="form-group">
+                <label for="cfg-appid">App ID *</label>
+                <input type="text" id="cfg-appid" placeholder="1:12345:web:abcd...">
+              </div>
+            </div>
+          </div>
+
+          <!-- Google Sheets Config Section -->
+          <div id="config-sheets-group" class="hidden">
+            <p class="config-help-text" style="color: var(--color-accent); font-weight: 600; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem;">
+              <span class="material-icons-round" style="font-size: 18px;">cloud_done</span>
+              Configured via Environment Variable
+            </p>
+            <p class="config-help-text" style="line-height: 1.4; opacity: 0.85;">
+              The Google Sheets Apps Script Web App URL is loaded securely from the root <code>.env</code> file (key: <code>GOOGLE_SHEETS_URL</code>). Any manual input has been removed from the frontend code to protect your credentials.
+            </p>
+          </div>
+
+          <!-- Local Mock Config Section -->
+          <div id="config-mock-group" class="hidden">
+            <p class="config-help-text">
+              Use Invoicify's built-in Local Mock database. It works 100% offline, stores all data in your browser's localStorage, and pre-seeds test accounts:
+              <br><br>
+              <strong>Emails &amp; Passwords:</strong>
+              <br>
+              • <code>vidhij0815@gmail.com</code> (Password: <code>19022020</code>)
+              <br>
+              • <code>vidhitest@gmail.com</code> (Password: <code>123456</code>)
+            </p>
+          </div>
+
+          <button type="button" id="btn-save-config" class="btn btn-secondary btn-full btn-save-cfg" style="margin-top: 1rem;">
+            <span class="material-icons-round">check</span>
+            <span>Apply & Save Configuration</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Services (Compat mode for simple script tags) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- Default Local Firebase Configuration -->
+  <script src="firebase-config.js"></script>
+
+  <!-- Main JavaScript File -->
+  <script src="app.js"></script>
+</body>
+
+</html>
